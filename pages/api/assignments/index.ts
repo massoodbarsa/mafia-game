@@ -1,19 +1,27 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/lib/mongodb";
+import { Assignment } from "@/types/assignment";
+
+type Data =
+    | { ok: true; assignments: Assignment[] }
+    | { ok: true; id: string }
+    | { ok: false; error: string };
 
 export default async function handler(
     req: NextApiRequest,
-    res: NextApiResponse
+    res: NextApiResponse<Data>
 ) {
     const client = await clientPromise;
-    const db = client.db("project-management");
-    const collection = db.collection("assignments");
+    const db = client.db("projecttracker");
+    const collection = db.collection<Assignment>("assignments");
 
     if (req.method === "POST") {
-        const assignment = req.body;
-        assignment.createdAt = new Date();
+        const assignment: Assignment = {
+            ...req.body,
+            createdAt: new Date().toISOString(),
+        };
         const result = await collection.insertOne(assignment);
-        return res.status(201).json({ ok: true, id: result.insertedId });
+        return res.status(201).json({ ok: true, id: result.insertedId.toString() });
     }
 
     if (req.method === "GET") {
